@@ -1,5 +1,3 @@
--- Speed Hub X V2 - Rework com IA, animações, visual aprimorado e edição de tabs com menu interativo
-
 local TweenService = game:GetService("TweenService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -116,7 +114,7 @@ local function createThreeDotsMenu(parentBtn, tabName)
     Dots.ZIndex = 5
 
     local OptionsFrame = Instance.new("Frame")
-    OptionsFrame.Size = UDim2.new(0, 140, 0, 70)
+    OptionsFrame.Size = UDim2.new(0, 140, 0, 35)
     OptionsFrame.Position = UDim2.new(0, 160, 0, 0)
     OptionsFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     OptionsFrame.Visible = false
@@ -125,21 +123,12 @@ local function createThreeDotsMenu(parentBtn, tabName)
     OptionsFrame.Parent = parentBtn
 
     local Rename = Instance.new("TextButton", OptionsFrame)
-    Rename.Size = UDim2.new(1, 0, 0.5, 0)
+    Rename.Size = UDim2.new(1, 0, 1, 0)
     Rename.Text = "Renomear"
     Rename.Font = Enum.Font.Gotham
     Rename.TextColor3 = Color3.fromRGB(255, 255, 255)
     Rename.BackgroundTransparency = 1
     Rename.ZIndex = 7
-
-    local AddCode = Instance.new("TextButton", OptionsFrame)
-    AddCode.Position = UDim2.new(0, 0, 0.5, 0)
-    AddCode.Size = UDim2.new(1, 0, 0.5, 0)
-    AddCode.Text = "Adicionar Código"
-    AddCode.Font = Enum.Font.Gotham
-    AddCode.TextColor3 = Color3.fromRGB(255, 255, 255)
-    AddCode.BackgroundTransparency = 1
-    AddCode.ZIndex = 7
 
     Dots.MouseButton1Click:Connect(function()
         OptionsFrame.Visible = not OptionsFrame.Visible
@@ -177,38 +166,7 @@ local function createThreeDotsMenu(parentBtn, tabName)
             end
             prompt:Destroy()
             saveButton:Destroy()
-        end)
-    end)
-
-    -- Adicionar código
-    AddCode.MouseButton1Click:Connect(function()
-        local prompt = Instance.new("TextBox")
-        prompt.Size = UDim2.new(0, 200, 0, 30)
-        prompt.Position = UDim2.new(0.5, -100, 0.5, -15)
-        prompt.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-        prompt.BorderSizePixel = 0
-        prompt.TextColor3 = Color3.fromRGB(255, 255, 255)
-        prompt.Text = "Digite o código da tab"
-        prompt.ClearTextOnFocus = true
-        prompt.Parent = ScreenGui
-
-        local saveButton = Instance.new("TextButton")
-        saveButton.Size = UDim2.new(0, 100, 0, 30)
-        saveButton.Position = UDim2.new(0.5, -50, 0.5, 20)
-        saveButton.Text = "Salvar"
-        saveButton.Font = Enum.Font.GothamBold
-        saveButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-        saveButton.BackgroundColor3 = Color3.fromRGB(60, 90, 200)
-        saveButton.Parent = ScreenGui
-
-        saveButton.MouseButton1Click:Connect(function()
-            local scriptCode = prompt.Text
-            if scriptCode and scriptCode ~= "" then
-                TabScripts[tabName] = scriptCode
-                print("Código adicionado para a tab " .. tabName .. ": " .. scriptCode)
-            end
-            prompt:Destroy()
-            saveButton:Destroy()
+            OptionsFrame.Visible = false -- Fechar o menu de opções
         end)
     end)
 end
