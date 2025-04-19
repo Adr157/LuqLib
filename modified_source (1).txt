@@ -1,142 +1,243 @@
--- Biblioteca LuqLib V2 (Atualizada com botões de minimizar, maximizar e fechar)
-local LuqLib = {}
-LuqLib.Elements = {}
-LuqLib.Connections = {}
-LuqLib.Flags = {}
+-- Speed Hub X V2 - Rework com IA, animações, visual aprimorado e edição de tabs com menu interativo
 
--- Tema padrão
-LuqLib.Theme = {
-    Background = Color3.fromRGB(25, 25, 25),
-    Foreground = Color3.fromRGB(32, 32, 32),
-    Accent = Color3.fromRGB(0, 162, 255),
-    Text = Color3.fromRGB(255, 255, 255),
-    SubText = Color3.fromRGB(200, 200, 200)
-}
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
 
--- Inicializar a Biblioteca
-function LuqLib:MakeWindow(config)
-    config = config or {}
-    local Window = {}
-    Window.Name = config.Name or "LuqLib Window"
-    Window.Tabs = {}
-    Window.Minimized = false
-    Window.Maximized = false
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+ScreenGui.Name = "SpeedHubX_V2"
 
-    -- Criar ScreenGui
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "LuqLib"
-    ScreenGui.Parent = game:GetService("CoreGui")
+local Hub = Instance.new("Frame")
+Hub.Name = "Hub"
+Hub.Size = UDim2.new(0, 720, 0, 440)
+Hub.Position = UDim2.new(0.15, 0, 0.2, 0)
+Hub.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+Hub.BackgroundTransparency = 0.2
+Hub.BorderSizePixel = 0
+Hub.Active = true
+Hub.Draggable = true
+Hub.Parent = ScreenGui
+Instance.new("UICorner", Hub).CornerRadius = UDim.new(0, 22)
 
-    -- Criar Janela Principal
-    local MainFrame = Instance.new("Frame")
-    MainFrame.Size = UDim2.new(0, 600, 0, 400)
-    MainFrame.Position = UDim2.new(0.5, -300, 0.5, -200)
-    MainFrame.BackgroundColor3 = LuqLib.Theme.Background
-    MainFrame.ClipsDescendants = true
-    MainFrame.Parent = ScreenGui
+local Header = Instance.new("Frame", Hub)
+Header.Size = UDim2.new(1, 0, 0, 42)
+Header.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Header.BorderSizePixel = 0
+Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 18)
 
-    -- Barra Superior
-    local TopBar = Instance.new("Frame")
-    TopBar.Size = UDim2.new(1, 0, 0, 40)
-    TopBar.BackgroundColor3 = LuqLib.Theme.Accent
-    TopBar.Parent = MainFrame
+local Title = Instance.new("TextLabel", Header)
+Title.Size = UDim2.new(1, -120, 1, 0)
+Title.Position = UDim2.new(0, 10, 0, 0)
+Title.Text = "Speed Hub X | V2.0 | IA Assistant On"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 17
+Title.Font = Enum.Font.GothamBold
+Title.BackgroundTransparency = 1
+Title.TextXAlignment = Enum.TextXAlignment.Left
 
-    local Title = Instance.new("TextLabel")
-    Title.Text = Window.Name
-    Title.Size = UDim2.new(1, -120, 1, 0)
-    Title.BackgroundTransparency = 1
-    Title.TextColor3 = LuqLib.Theme.Text
-    Title.Font = Enum.Font.GothamBold
-    Title.TextSize = 18
-    Title.Parent = TopBar
+local Minimize = Instance.new("TextButton", Header)
+Minimize.Size = UDim2.new(0, 40, 0, 40)
+Minimize.Position = UDim2.new(1, -80, 0, 0)
+Minimize.Text = "-"
+Minimize.Font = Enum.Font.GothamBold
+Minimize.TextColor3 = Color3.fromRGB(255, 255, 255)
+Minimize.BackgroundTransparency = 1
 
-    -- Botões de Controle
-    local CloseButton = Instance.new("TextButton")
-    CloseButton.Size = UDim2.new(0, 40, 0, 40)
-    CloseButton.Position = UDim2.new(1, -40, 0, 0)
-    CloseButton.Text = "X"
-    CloseButton.TextColor3 = LuqLib.Theme.Text
-    CloseButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-    CloseButton.Font = Enum.Font.GothamBold
-    CloseButton.TextSize = 18
-    CloseButton.Parent = TopBar
+local Expand = Instance.new("TextButton", ScreenGui)
+Expand.Size = UDim2.new(0, 100, 0, 40)
+Expand.Position = UDim2.new(0.15, 0, 0.2, 0)
+Expand.Text = "+"
+Expand.Font = Enum.Font.GothamBold
+Expand.TextColor3 = Color3.fromRGB(255, 255, 255)
+Expand.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+Expand.Visible = false
+Instance.new("UICorner", Expand).CornerRadius = UDim.new(0, 12)
 
-    local MinimizeButton = Instance.new("TextButton")
-    MinimizeButton.Size = UDim2.new(0, 40, 0, 40)
-    MinimizeButton.Position = UDim2.new(1, -80, 0, 0)
-    MinimizeButton.Text = "_"
-    MinimizeButton.TextColor3 = LuqLib.Theme.Text
-    MinimizeButton.BackgroundColor3 = Color3.fromRGB(50, 50, 200)
-    MinimizeButton.Font = Enum.Font.GothamBold
-    MinimizeButton.TextSize = 18
-    MinimizeButton.Parent = TopBar
+Minimize.MouseButton1Click:Connect(function()
+    Hub.Visible = false
+    Expand.Visible = true
+end)
 
-    local MaximizeButton = Instance.new("TextButton")
-    MaximizeButton.Size = UDim2.new(0, 40, 0, 40)
-    MaximizeButton.Position = UDim2.new(1, -120, 0, 0)
-    MaximizeButton.Text = "☐"
-    MaximizeButton.TextColor3 = LuqLib.Theme.Text
-    MaximizeButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
-    MaximizeButton.Font = Enum.Font.GothamBold
-    MaximizeButton.TextSize = 18
-    MaximizeButton.Parent = TopBar
+Expand.MouseButton1Click:Connect(function()
+    Hub.Visible = true
+    Expand.Visible = false
+end)
 
-    -- Botões de Controle: Funcionalidade
-    CloseButton.MouseButton1Click:Connect(function()
-        ScreenGui:Destroy()
-    end)
+local Sidebar = Instance.new("Frame", Hub)
+Sidebar.Size = UDim2.new(0, 170, 1, -42)
+Sidebar.Position = UDim2.new(0, 0, 0, 42)
+Sidebar.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 
-    MinimizeButton.MouseButton1Click:Connect(function()
-        if not Window.Minimized then
-            MainFrame.Size = UDim2.new(0, 600, 0, 40)
-            MinimizeButton.Text = "▔"
-        else
-            MainFrame.Size = UDim2.new(0, 600, 0, 400)
-            MinimizeButton.Text = "_"
+local UIListLayout = Instance.new("UIListLayout", Sidebar)
+UIListLayout.Padding = UDim.new(0, 8)
+UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+
+local Tabs = {"Main", "Automatically", "Inventory", "Shop", "Quests", "Teleport", "Webhook"}
+local TabButtons = {}
+local TabScripts = {}
+local TabContent = Instance.new("Frame", Hub)
+TabContent.Size = UDim2.new(1, -170, 1, -42)
+TabContent.Position = UDim2.new(0, 170, 0, 42)
+TabContent.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Instance.new("UICorner", TabContent).CornerRadius = UDim.new(0, 16)
+
+local currentSelectedTab = nil
+
+local function clearContent()
+    for _, child in pairs(TabContent:GetChildren()) do
+        if not child:IsA("UICorner") then
+            child:Destroy()
         end
-        Window.Minimized = not Window.Minimized
-    end)
-
-    MaximizeButton.MouseButton1Click:Connect(function()
-        if not Window.Maximized then
-            MainFrame.Size = UDim2.new(1, 0, 1, 0)
-            MainFrame.Position = UDim2.new(0, 0, 0, 0)
-            MaximizeButton.Text = "▢"
-        else
-            MainFrame.Size = UDim2.new(0, 600, 0, 400)
-            MainFrame.Position = UDim2.new(0.5, -300, 0.5, -200)
-            MaximizeButton.Text = "☐"
-        end
-        Window.Maximized = not Window.Maximized
-    end)
-
-    -- Tabs e Elementos continuam os mesmos
-    local TabFrame = Instance.new("Frame")
-    TabFrame.Size = UDim2.new(0, 150, 1, -40)
-    TabFrame.Position = UDim2.new(0, 0, 0, 40)
-    TabFrame.BackgroundColor3 = LuqLib.Theme.Foreground
-    TabFrame.Parent = MainFrame
-
-    local ContentFrame = Instance.new("Frame")
-    ContentFrame.Size = UDim2.new(1, -150, 1, -40)
-    ContentFrame.Position = UDim2.new(0, 150, 0, 40)
-    ContentFrame.BackgroundColor3 = LuqLib.Theme.Background
-    ContentFrame.Parent = MainFrame
-
-    -- Função para criar Abas
-    function Window:MakeTab(tabConfig)
-        tabConfig = tabConfig or {}
-        local Tab = {}
-        Tab.Name = tabConfig.Name or "Nova Aba"
-        Tab.Elements = {}
-
-        -- Adiciona mais funções de Tabs como antes
-        -- ...
-
-        return Tab
     end
-
-    return Window
 end
 
-return LuqLib
+local function highlightTab(tabButton)
+    for _, btn in pairs(TabButtons) do
+        TweenService:Create(btn, TweenInfo.new(0.25), {
+            BackgroundColor3 = Color3.fromRGB(30, 30, 30),
+            TextColor3 = Color3.fromRGB(255, 255, 255)
+        }):Play()
+    end
+    TweenService:Create(tabButton, TweenInfo.new(0.25), {
+        BackgroundColor3 = Color3.fromRGB(60, 90, 200),
+        TextColor3 = Color3.fromRGB(255, 255, 255)
+    }):Play()
+end
+
+local function createThreeDotsMenu(parentBtn, tabName)
+    local Dots = Instance.new("TextButton", parentBtn)
+    Dots.Size = UDim2.new(0, 20, 0, 20)
+    Dots.Position = UDim2.new(1, -25, 0, 10)
+    Dots.Text = "⋮"
+    Dots.Font = Enum.Font.GothamBold
+    Dots.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Dots.BackgroundTransparency = 1
+    Dots.ZIndex = 5
+
+    local OptionsFrame = Instance.new("Frame")
+    OptionsFrame.Size = UDim2.new(0, 140, 0, 70)
+    OptionsFrame.Position = UDim2.new(0, 160, 0, 0)
+    OptionsFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    OptionsFrame.Visible = false
+    OptionsFrame.ZIndex = 6
+    Instance.new("UICorner", OptionsFrame).CornerRadius = UDim.new(0, 8)
+    OptionsFrame.Parent = parentBtn
+
+    local Rename = Instance.new("TextButton", OptionsFrame)
+    Rename.Size = UDim2.new(1, 0, 0.5, 0)
+    Rename.Text = "Renomear"
+    Rename.Font = Enum.Font.Gotham
+    Rename.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Rename.BackgroundTransparency = 1
+    Rename.ZIndex = 7
+
+    local AddCode = Instance.new("TextButton", OptionsFrame)
+    AddCode.Position = UDim2.new(0, 0, 0.5, 0)
+    AddCode.Size = UDim2.new(1, 0, 0.5, 0)
+    AddCode.Text = "Adicionar Código"
+    AddCode.Font = Enum.Font.Gotham
+    AddCode.TextColor3 = Color3.fromRGB(255, 255, 255)
+    AddCode.BackgroundTransparency = 1
+    AddCode.ZIndex = 7
+
+    Dots.MouseButton1Click:Connect(function()
+        OptionsFrame.Visible = not OptionsFrame.Visible
+    end)
+
+    -- Renomear Tab
+    Rename.MouseButton1Click:Connect(function()
+        local prompt = Instance.new("TextBox")
+        prompt.Size = UDim2.new(0, 200, 0, 30)
+        prompt.Position = UDim2.new(0.5, -100, 0.5, -15)
+        prompt.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        prompt.BorderSizePixel = 0
+        prompt.TextColor3 = Color3.fromRGB(255, 255, 255)
+        prompt.Text = "Digite o novo nome da tab"
+        prompt.ClearTextOnFocus = true
+        prompt.Parent = ScreenGui
+
+        local saveButton = Instance.new("TextButton")
+        saveButton.Size = UDim2.new(0, 100, 0, 30)
+        saveButton.Position = UDim2.new(0.5, -50, 0.5, 20)
+        saveButton.Text = "Salvar"
+        saveButton.Font = Enum.Font.GothamBold
+        saveButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        saveButton.BackgroundColor3 = Color3.fromRGB(60, 90, 200)
+        saveButton.Parent = ScreenGui
+
+        saveButton.MouseButton1Click:Connect(function()
+            local newName = prompt.Text
+            if newName and newName ~= "" then
+                parentBtn.Text = newName
+                TabScripts[newName] = TabScripts[tabName]
+                TabScripts[tabName] = nil
+                TabButtons[newName] = parentBtn
+                TabButtons[tabName] = nil
+            end
+            prompt:Destroy()
+            saveButton:Destroy()
+        end)
+    end)
+
+    -- Adicionar código
+    AddCode.MouseButton1Click:Connect(function()
+        local prompt = Instance.new("TextBox")
+        prompt.Size = UDim2.new(0, 200, 0, 30)
+        prompt.Position = UDim2.new(0.5, -100, 0.5, -15)
+        prompt.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        prompt.BorderSizePixel = 0
+        prompt.TextColor3 = Color3.fromRGB(255, 255, 255)
+        prompt.Text = "Digite o código da tab"
+        prompt.ClearTextOnFocus = true
+        prompt.Parent = ScreenGui
+
+        local saveButton = Instance.new("TextButton")
+        saveButton.Size = UDim2.new(0, 100, 0, 30)
+        saveButton.Position = UDim2.new(0.5, -50, 0.5, 20)
+        saveButton.Text = "Salvar"
+        saveButton.Font = Enum.Font.GothamBold
+        saveButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        saveButton.BackgroundColor3 = Color3.fromRGB(60, 90, 200)
+        saveButton.Parent = ScreenGui
+
+        saveButton.MouseButton1Click:Connect(function()
+            local scriptCode = prompt.Text
+            if scriptCode and scriptCode ~= "" then
+                TabScripts[tabName] = scriptCode
+                print("Código adicionado para a tab " .. tabName .. ": " .. scriptCode)
+            end
+            prompt:Destroy()
+            saveButton:Destroy()
+        end)
+    end)
+end
+
+-- Criar as tabs
+for _, tabName in ipairs(Tabs) do
+    local tabButton = Instance.new("TextButton", Sidebar)
+    tabButton.Size = UDim2.new(1, 0, 0, 40)
+    tabButton.Text = tabName
+    tabButton.Font = Enum.Font.GothamBold
+    tabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    tabButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    tabButton.BorderSizePixel = 0
+    tabButton.TextSize = 16
+    tabButton.Name = tabName
+    tabButton.MouseButton1Click:Connect(function()
+        clearContent()
+        highlightTab(tabButton)
+
+        if TabScripts[tabName] then
+            local scriptLabel = Instance.new("TextLabel", TabContent)
+            scriptLabel.Size = UDim2.new(1, 0, 0, 40)
+            scriptLabel.Text = "Script: " .. TabScripts[tabName]
+            scriptLabel.Font = Enum.Font.Gotham
+            scriptLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            scriptLabel.BackgroundTransparency = 1
+        end
+    end)
+
+    TabButtons[tabName] = tabButton
+    createThreeDotsMenu(tabButton, tabName)
+end
