@@ -230,4 +230,4 @@ if not success then
 end
 
 -- Para usar no GitHub, o loadstring permanece o mesmo:
--- loadstring(game:HttpGet("https://raw.githubusercontent.com/SEU_USUARIO/SEU_REPOSITORIO/main/QuantumHub_v3.0_Trinity.lua"))()
+-- loadstring(game:HttpGet("https://raw.githubusercontent.com/Adr157/LuqLib/refs/heads/main/modified_source%20(1).txt"))()
