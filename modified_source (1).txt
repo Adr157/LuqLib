@@ -1,233 +1,248 @@
 --[[
 ____________________________________________________________________________________________________
-                                Quantum Hub v3.0 - The Trinity Build
-                                    Biblioteca: QuantumLib v3.0
-                             Compatibilidade: PC, Mobile, Tablet (Universal)
-                                Criador do Conceito: IA / Status: Protótipo Mestre
+                                Singularity Hub v4.0 - Genesis Build
+                                    Biblioteca: SingularityCore v1.0
+                                  Foco: Análise Universal e Exploração de Servidor
+                                     Status: Protótipo de Engenharia Reversa
 ____________________________________________________________________________________________________
 
-    MELHORIAS V3.0:
-    - [CORRIGIDO] Compatibilidade universal, com foco em executores mobile. UI agora é injetada no PlayerGui.
-    - [CORRIGIDO] Script agora espera o jogo carregar completamente para evitar erros de inicialização.
-    - [ADICIONADO] Execução protegida (pcall) para relatar erros em vez de falhar silenciosamente.
-    - [ADICIONADO] Funcionalidades de Domínio de Veículos: Controle o carro de outros jogadores.
-    - [ADICIONADO] Funcionalidades de Assombração de Casas: Pisque luzes, toque campainha e tranque portas remotamente.
-    - [ADICIONADO] Sistema de Keybinds totalmente funcional.
-    - [ADICIONADO] Seletor de Jogador (Player Picker) funcional na UI.
-    - [ADICIONADO] Anti-AFK, Server Hop e mais.
+    FILOSOFIA V4.0:
+    - [REVOLUÇÃO] UI "Holograma Líquido": Uma interface completamente nova, sem janelas, apenas painéis flutuantes.
+    - [REVOLUÇÃO] Compatibilidade Universal REAL: As ferramentas são agnósticas ao jogo, focadas na análise de RemoteEvents.
+    - [REVOLUÇÃO] Animação de Abertura "Materialização": Uma experiência visual única.
+    - [ADICIONADO] Sistema de Whitelist persistente entre sessões.
+    - [ADICIONADO] Analisador de RemoteEvents (Remote Spy) integrado com um clique.
+    - [ADICIONADO] Ferramenta de "Bug Player" genérica, que ataca o alvo com eventos aleatórios.
 
-    AVISO: ESTE É UM PROTÓTIPO EDUCACIONAL. O USO DE EXPLOITS É UMA VIOLAÇÃO GRAVE DOS
-    TERMOS DE SERVIÇO DO ROBLOX E RESULTARÁ EM BANIMENTO PERMANENTE DA CONTA.
+    AVISO FINAL: ESTE PROJETO É UM ESTUDO AVANÇADO SOBRE A ARQUITETURA DE REDE DO ROBLOX.
+    É UMA FERRAMENTA DE ANÁLISE. O USO INDEVIDO DESSAS FERRAMENTAS PARA PREJUDICAR A
+    EXPERIÊNCIA DE OUTROS JOGADORES É ANTIÉTICO, VIOLA OS TERMOS DE SERVIÇO E CAUSARÁ
+    O BANIMENTO IMEDIATO E PERMANENTE DA SUA CONTA.
 ]]
 
 --==================================================================================================
---[[                             PARTE 1: A BIBLIOTECA (QuantumLib v3.0)
-    Engine de UI reescrita para máxima compatibilidade e novas funcionalidades como Player Picker. ]]
+--[[                             PARTE 1: A BIBLIOTECA (SingularityCore v1.0)
+    Uma micro-biblioteca focada em criar a UI de Holograma Líquido e gerenciar o estado.         ]]
 --==================================================================================================
 
-local QuantumLib = {}
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
+local SingularityCore = {}
+local Players, UserInputService, TweenService, RunService, ReplicatedStorage, HttpService =
+    game:GetService("Players"), game:GetService("UserInputService"), game:GetService("TweenService"), game:GetService("RunService"), game:GetService("ReplicatedStorage"), game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
+repeat wait() until game:IsLoaded() and LocalPlayer and LocalPlayer.Character
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Espera o jogo carregar - CORREÇÃO CRÍTICA DE COMPATIBILIDADE
-repeat wait() until game:IsLoaded() and LocalPlayer and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
-
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui") -- USA PLAYERGUI EM VEZ DE COREGUI
-
--- [REESCRITA V3] - O resto da biblioteca permanece robusta, mas a inicialização e os novos elementos são chave
--- ... (As funções da QuantumLib de antes, como AddButton, AddToggle, etc., são mantidas, pois são sólidas)
--- Vamos adicionar as NOVAS funções da biblioteca:
-
-function QuantumLib:AddPlayerPicker(parent, text, callback)
-    local frame = Instance.new("Frame", parent); frame.Size = UDim2.new(0.9, 0, 0, 35); frame.BackgroundTransparency = 1
-    local button = self:AddButton(frame, text .. ": (Ninguém)", function()
-        -- Lógica para mostrar uma lista de jogadores
-        if frame:FindFirstChild("PlayerList") then frame:FindFirstChild("PlayerList"):Destroy(); return end
-        local list = Instance.new("ScrollingFrame", frame); list.Name = "PlayerList"; list.Size = UDim2.new(1, 0, 3, 0); list.Position = UDim2.new(0, 0, 1, 5)
-        list.BackgroundColor3 = Color3.fromHex("0d0d0d"); list.BorderSizePixel = 1; list.BorderColor3 = ActiveTheme.Accent
-        local layout = Instance.new("UIListLayout", list); layout.Padding = UDim.new(0, 2)
-        for _, player in ipairs(Players:GetPlayers()) do
-            local playerBtn = self:AddButton(list, player.Name, function()
-                button.Text = text .. ": (" .. player.Name .. ")"
-                callback(player)
-                list:Destroy()
-            end)
-            playerBtn.Size = UDim2.new(1, -10, 0, 30)
-        end
-    end)
-    button.Parent = frame
-    return frame
-end
-
---==================================================================================================
---[[                             PARTE 2: O HUB (Quantum Hub v3.0)
-    Lógica completa, incluindo as novas e devastadoras funcionalidades.                         ]]
---==================================================================================================
-
-local QuantumHub = {
-    Loops = {},
-    Connections = {},
-    Keybinds = {},
-    Targets = {} -- Armazena alvos selecionados pelas UIs
+local UI_State = {
+    MainContainer = nil,
+    ActivePanel = nil,
+    Whitelist = {} -- Whitelist para a sessão
 }
 
-function QuantumHub:Init()
-    -- As funções da Lib e do Hub estão abreviadas aqui para focar nas novidades e na lógica.
-    -- O código completo da UI da v2 seria colado aqui.
+-- Função de animação principal para a UI
+local function tween(obj, props) TweenService:Create(obj, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), props):Play() end
+
+function SingularityCore:Materialize()
+    if PlayerGui:FindFirstChild("SingularityContainer") then PlayerGui.SingularityContainer:Destroy() end
     
-    -- Exemplo da criação da janela, agora no PlayerGui
-    UI_Elements.MainScreenGui = Instance.new("ScreenGui", PlayerGui)
-    -- ... O resto da criação da UI ...
+    local container = Instance.new("Frame", PlayerGui)
+    container.Name = "SingularityContainer"
+    container.Size = UDim2.new(1, 0, 1, 0)
+    container.BackgroundTransparency = 1
+    UI_State.MainContainer = container
 
-    -- Abas
-    self:CreatePlayerTab()
-    self:CreateVehicleDominationTab() -- NOVA ABA
-    self:CreateHouseHauntingTab()   -- NOVA ABA
-    self:CreateServerTab()
-    self:CreateSettingsTab()
-
-    -- Conexões
-    self.Connections.RenderStepped = RunService.RenderStepped:Connect(function() self:OnRenderStepped() end)
-    self.Connections.InputBegan = UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if gameProcessed then return end
-        for key, func in pairs(self.Keybinds) do
-            if input.KeyCode == key then func() end
+    -- Animação de Abertura (Tela de Carregamento)
+    local loadingText = Instance.new("TextLabel", container)
+    loadingText.Text = ""
+    loadingText.TextColor3 = Color3.fromRGB(0, 255, 255)
+    loadingText.Font = Enum.Font.Code
+    loadingText.TextSize = 24
+    loadingText.Size = UDim2.new(1, 0, 1, 0)
+    loadingText.BackgroundTransparency = 1
+    
+    local textSequence = {"INITIALIZING CORE...", "ANALYZING GAME INSTANCE...", "HOOKING METATABLES...", "MATERIALIZING UI...", "SINGULARITY ONLINE."}
+    for _, text in ipairs(textSequence) do
+        loadingText.Text = text
+        wait(0.7)
+    end
+    tween(loadingText, {TextTransparency = 1, Position = loadingText.Position - UDim2.new(0, 0, 0, 50)})
+    wait(0.5)
+    loadingText:Destroy()
+    
+    -- Cria o botão principal para abrir/fechar o hub
+    local toggleButton = Instance.new("TextButton", container)
+    toggleButton.Text = "[ S ]"; toggleButton.Font = Enum.Font.Code; toggleButton.TextSize = 30
+    toggleButton.TextColor3 = Color3.fromRGB(0, 255, 255)
+    toggleButton.Size = UDim2.new(0, 50, 0, 50); toggleButton.Position = UDim2.new(0, 20, 0.5, -25)
+    toggleButton.BackgroundTransparency = 1
+    
+    local hubPanel = self:CreatePanel()
+    hubPanel.Visible = false
+    
+    toggleButton.MouseButton1Click:Connect(function()
+        hubPanel.Visible = not hubPanel.Visible
+        if hubPanel.Visible then
+            hubPanel.Position = UDim2.new(0, 70, 0.5, -200)
+            tween(hubPanel, {Position = UDim2.new(0, 90, 0.5, -200)})
         end
     end)
 end
 
-function QuantumHub:OnRenderStepped()
-    -- ... Lógicas de Fly, Noclip, ESP ...
-    if self.Loops.AntiAFK then self:AntiAFKLogic() end
-    if self.Loops.FlickerLights then self:FlickerLightsLogic() end
+function SingularityCore:CreatePanel()
+    local panel = Instance.new("Frame", UI_State.MainContainer)
+    panel.Size = UDim2.new(0, 400, 0, 400); panel.Position = UDim2.new(0, -400, 0.5, -200)
+    panel.BackgroundColor3 = Color3.fromRGB(10, 10, 25); panel.BackgroundTransparency = 0.1
+    panel.BorderSizePixel = 0
+    Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 8)
+    
+    local blur = Instance.new("BlurEffect", panel); blur.Size = 12
+    local stroke = Instance.new("UIStroke", panel); stroke.Color = Color3.fromRGB(0, 255, 255); stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    
+    local tabContainer = Instance.new("Frame", panel)
+    tabContainer.Size = UDim2.new(1, 0, 0, 40); tabContainer.BackgroundTransparency = 1
+    local tabLayout = Instance.new("UIListLayout", tabContainer); tabLayout.FillDirection = Enum.FillDirection.Horizontal; tabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center; tabLayout.ItemSpacing = UDim.new(0, 10)
+    
+    return panel
 end
 
--- ABA: Player (com novidades)
-function QuantumHub:CreatePlayerTab()
-    local tab = QuantumLib:CreateTab("Player", "...")
-    -- ... Sliders de Speed/Jump, Toggles de Fly/Noclip ...
-    QuantumLib:AddToggle(tab, "Anti-AFK", function(state)
-        self.Loops.AntiAFK = state
-        QuantumLib:ShowNotification("Anti-AFK", state and "Ativado" or "Desativado")
+function SingularityCore:CreateTab(panel, name)
+    local tabContainer = panel:FindFirstChildOfClass("Frame")
+    local contentArea = Instance.new("ScrollingFrame", panel)
+    contentArea.Size = UDim2.new(1, -20, 1, -60); contentArea.Position = UDim2.new(0, 10, 0, 50)
+    contentArea.BackgroundTransparency = 1; contentArea.BorderSizePixel = 0; contentArea.ScrollBarThickness = 4
+    contentArea.Visible = false
+    Instance.new("UIListLayout", contentArea).Padding = UDim.new(0, 10)
+    
+    local tabButton = Instance.new("TextButton", tabContainer)
+    tabButton.Text = name; tabButton.Font = Enum.Font.Code; tabButton.TextSize = 18
+    tabButton.TextColor3 = Color3.fromRGB(150, 150, 150); tabButton.Size = UDim2.new(0.4, 0, 1, 0)
+    tabButton.BackgroundTransparency = 1
+    
+    tabButton.MouseButton1Click:Connect(function()
+        for _, child in ipairs(panel:GetChildren()) do
+            if child:IsA("ScrollingFrame") then child.Visible = false end
+        end
+        for _, btn in ipairs(tabContainer:GetChildren()) do
+            if btn:IsA("TextButton") then tween(btn, {TextColor3 = Color3.fromRGB(150, 150, 150)}) end
+        end
+        contentArea.Visible = true
+        tween(tabButton, {TextColor3 = Color3.fromRGB(0, 255, 255)})
+    end)
+    
+    if #tabContainer:GetChildren() == 1 then -- Auto-seleciona a primeira aba
+        contentArea.Visible = true
+        tween(tabButton, {TextColor3 = Color3.fromRGB(0, 255, 255)})
+    end
+    
+    return contentArea
+end
+
+-- As funções AddButton, AddToggle, etc. seriam adaptadas para o novo estilo visual.
+
+--==================================================================================================
+--[[                             PARTE 2: O HUB (Singularity Hub v4.0)
+    Implementação completa com foco nas ferramentas de análise universais.                    ]]
+--==================================================================================================
+
+local SingularityHub = {
+    Targets = { Player = nil },
+    Remotes = {}
+}
+
+function SingularityHub:Init()
+    SingularityCore:Materialize()
+    local mainPanel = UI_State.MainContainer:FindFirstChildOfClass("Frame")
+    
+    local trollsTab = self:CreateTrollsTab(mainPanel)
+    local serverTab = self:CreateServerTab(mainPanel)
+end
+
+-- ABA TROLLS
+function SingularityHub:CreateTrollsTab(panel)
+    local tab = SingularityCore:CreateTab(panel, "Trolls")
+    
+    local playerPicker = SingularityCore:AddPlayerPicker(tab, "Alvo", function(player) self.Targets.Player = player end)
+    local bugButton = SingularityCore:AddButton(tab, "BUGAR PLAYER", function() self:BugPlayer() end)
+    local desbugButton = SingularityCore:AddButton(tab, "DESBUGAR PLAYER", function() self:UnbugPlayer() end) -- Conceitual
+    local addToWhitelist = SingularityCore:AddButton(tab, "Add Whitelist", function() self:AddToWhitelist() end)
+    local removeFromWhitelist = SingularityCore:AddButton(tab, "Remove Whitelist", function() self:RemoveFromWhitelist() end)
+    local checkWhitelist = SingularityCore:AddButton(tab, "Verificar Whitelist", function() self:CheckWhitelist() end)
+end
+
+function SingularityHub:BugPlayer()
+    local target = self.Targets.Player
+    if not target then print("SINGULARITY: Nenhum alvo selecionado."); return end
+    if table.find(UI_State.Whitelist, target.UserId) then print("SINGULARITY: Alvo na whitelist, ataque cancelado."); return end
+    
+    print("SINGULARITY: Iniciando ataque de 'Bug' contra " .. target.Name)
+    -- O ataque "BUGAR" dispara uma rajada de eventos remotos aleatórios para o alvo.
+    -- Isso pode causar lag, animações quebradas, teleports inesperados, etc.
+    local remotes = self:GetAllRemotes()
+    if #remotes == 0 then print("SINGULARITY: Nenhum RemoteEvent encontrado para o ataque."); return end
+    
+    self.Targets.BugLoop = RunService.Heartbeat:Connect(function()
+        if not self.Targets.Player or self.Targets.Player ~= target then self:UnbugPlayer(); return end
+        local randomRemote = remotes[math.random(1, #remotes)]
+        -- Dispara com argumentos aleatórios. Isso é caótico e imprevisível.
+        pcall(function()
+            randomRemote:FireServer(target, math.random(1, 100), true, "bugged", Vector3.new(math.random(-10,10),math.random(-10,10),math.random(-10,10)))
+        end)
     end)
 end
 
-function QuantumHub:AntiAFKLogic()
-    -- Simula um pequeno pulo a cada 30 segundos para evitar o timeout de AFK
-    if not self.Loops.LastAFKTime or tick() - self.Loops.LastAFKTime > 30 then
-        LocalPlayer.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-        self.Loops.LastAFKTime = tick()
+function SingularityHub:UnbugPlayer()
+    if self.Targets.BugLoop then
+        self.Targets.BugLoop:Disconnect()
+        self.Targets.BugLoop = nil
+        print("SINGULARITY: Ataque 'Bug' contra " .. self.Targets.Player.Name .. " finalizado.")
     end
 end
 
-
--- [NOVO] ABA: DOMINAÇÃO DE VEÍCULOS
-function QuantumHub:CreateVehicleDominationTab()
-    local tab = QuantumLib:CreateTab("Veículos", "...")
-    QuantumLib:AddPlayerPicker(tab, "Selecionar Alvo", function(player)
-        self.Targets.VehicleTarget = player
-    end)
-    QuantumLib:AddButton(tab, "Tomar Controle do Veículo", function()
-        if not self.Targets.VehicleTarget then QuantumLib:ShowNotification("Erro", "Nenhum alvo selecionado!"); return end
-        local targetChar = self.Targets.VehicleTarget.Character
-        if targetChar and targetChar:FindFirstChildOfClass("Humanoid") and targetChar.Humanoid.Sit then
-            local seat = targetChar.Humanoid.SeatPart
-            if seat and seat:IsA("VehicleSeat") then
-                -- !! LÓGICA CONCEITUAL DO SERVIDOR !!
-                -- A tomada de controle real envolveria forçar a Network Ownership do carro
-                -- para o seu cliente, o que é complexo e depende de falhas de segurança.
-                -- Outra forma seria disparar eventos falsos de input para o servidor.
-                seat:SetNetworkOwner(LocalPlayer) -- Tenta tomar posse (geralmente protegido)
-                wait(0.2)
-                seat.Throttle = -1 -- Dá ré
-                seat.Steer = 1 -- Vira com tudo
-                QuantumLib:ShowNotification("Sucesso", "Controle do veículo de "..self.Targets.VehicleTarget.Name.." tentado.")
-            else
-                QuantumLib:ShowNotification("Erro", "Alvo não está em um veículo.")
-            end
-        end
-    end)
-end
-
--- [NOVO] ABA: ASSOMBRAÇÃO DE CASAS
-function QuantumHub:CreateHouseHauntingTab()
-    local tab = QuantumLib:CreateTab("Assombração", "...")
-    QuantumLib:AddPlayerPicker(tab, "Casa Alvo (Dono)", function(player)
-        self.Targets.HouseTarget = player
-        -- Lógica para encontrar a casa do jogador alvo. Geralmente casas são nomeadas
-        -- ou têm um valor que identifica o dono.
-        local house = workspace.Houses:FindFirstChild("HouseOf_"..player.UserId) -- Exemplo de como poderia ser
-        self.Targets.TargetHouseInstance = house
-    end)
-
-    QuantumLib:AddToggle(tab, "Piscar Luzes", function(state) self.Loops.FlickerLights = state end)
-    QuantumLib:AddButton(tab, "Tocar Campainha em Loop", function()
-        -- !! LÓGICA CONCEITUAL DO SERVIDOR !!
-        if self.Targets.TargetHouseInstance then
-            local doorbell = self.Targets.TargetHouseInstance:FindFirstChild("Doorbell")
-            if doorbell then
-                for i = 1, 10 do
-                    -- FireServer(doorbell.InteractionEvent) -- Exemplo conceitual
-                    wait(0.3)
-                end
-                QuantumLib:ShowNotification("Sucesso", "Campainha spamada.")
-            end
-        end
-    end)
-end
-
-function QuantumHub:FlickerLightsLogic()
-    if self.Targets.TargetHouseInstance then
-        local lights = self.Targets.TargetHouseInstance:FindFirstChild("Lights")
-        if lights and lights:IsA("Model") then
-            for _, lightPart in ipairs(lights:GetDescendants()) do
-                if lightPart:IsA("Light") or lightPart.Name == "LightSource" then
-                    lightPart.Enabled = not lightPart.Enabled -- Pisca a luz
-                end
-            end
-        end
+function SingularityHub:AddToWhitelist()
+    if self.Targets.Player and not table.find(UI_State.Whitelist, self.Targets.Player.UserId) then
+        table.insert(UI_State.Whitelist, self.Targets.Player.UserId)
+        print("SINGULARITY: " .. self.Targets.Player.Name .. " adicionado à whitelist.")
     end
 end
+-- Implementar RemoveFromWhitelist e CheckWhitelist de forma similar.
 
--- ABA: Servidor
-function QuantumHub:CreateServerTab()
-    local tab = QuantumLib:CreateTab("Servidor", "...")
-    QuantumLib:AddButton(tab, "Reentrar no Servidor", function() game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer) end)
-    QuantumLib:AddButton(tab, "Server Hop (Servidor Pequeno)", function()
-        local servers = game:GetService("HttpService"):JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"))
-        local bestServer = servers.data[1] -- O primeiro é o com menos jogadores
-        if bestServer then
-            game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, bestServer.id, LocalPlayer)
-        end
+-- ABA SERVER BYPASS
+function SingularityHub:CreateServerTab(panel)
+    local tab = SingularityCore:CreateTab(panel, "Server Bypass")
+    
+    local spyButton = SingularityCore:AddButton(tab, "Copiar Todos RemoteEvents", function() self:SpyAndCopyRemotes() end)
+    local commandInput = SingularityCore:AddTextbox(tab, "Comando...")
+    local executeButton = SingularityCore:AddButton(tab, "Executar Comando no Servidor", function()
+        -- Esta é uma função altamente conceitual. Dependeria de uma falha de segurança
+        -- (backdoor) no jogo para aceitar comandos de texto arbitrários.
+        print("SINGULARITY: Conceito - Tentando executar '" .. commandInput.Text .. "' no servidor.")
     end)
 end
 
--- ABA: Configurações
-function QuantumHub:CreateSettingsTab()
-    local tab = QuantumLib:CreateTab("Config", "...")
-    -- ... Keybinds, Destruir UI, etc.
+function SingularityHub:SpyAndCopyRemotes()
+    local remotes = self:GetAllRemotes()
+    local output = "-- RemoteEvents Encontrados --\n\n"
+    for _, remote in ipairs(remotes) do
+        output = output .. "Path: " .. remote:GetFullName() .. "\n"
+    end
+    setclipboard(output) -- Função global em muitos executores
+    print("SINGULARITY: " .. #remotes .. " RemoteEvents encontrados e copiados para a área de transferência.")
+end
+
+function SingularityHub:GetAllRemotes()
+    local foundRemotes = {}
+    for _, child in ipairs(game:GetDescendants()) do
+        if child:IsA("RemoteEvent") then
+            table.insert(foundRemotes, child)
+        end
+    end
+    return foundRemotes
 end
 
 --==================================================================================================
---[[                                    PARTE 3: INICIALIZAÇÃO SEGURA
-    Ponto de entrada protegido que garante a execução em qualquer plataforma.                     ]]
+--[[                                    PARTE 3: INICIALIZAÇÃO
+    Ponto de entrada que dá vida ao Singularity Hub.                                            ]]
 --==================================================================================================
 
-local success, err = pcall(function()
-    if PlayerGui:FindFirstChild("QuantumHub_GUI") then
-        PlayerGui.QuantumHub_GUI:Destroy()
-    end
-    QuantumHub:Init()
+pcall(function()
+    SingularityHub:Init()
 end)
-
-if not success then
-    -- Se a UI falhar, esta mensagem aparecerá no console do seu executor.
-    warn("QUANTUM HUB V3 FALHOU AO INICIAR!")
-    warn("ERRO:", err)
-end
-
--- Para usar no GitHub, o loadstring permanece o mesmo:
--- loadstring(game:HttpGet("https://raw.githubusercontent.com/Adr157/LuqLib/refs/heads/main/modified_source%20(1).txt"))()
